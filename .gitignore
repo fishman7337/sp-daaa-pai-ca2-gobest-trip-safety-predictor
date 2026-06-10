@@ -1,0 +1,48 @@
+_private_submission/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Build outputs
+build/
+dist/
+*.spec.bak
+*.log
+
+# Generated app outputs
+predictions_output*.csv
+gobest_predictions_*.csv
+admin_report*.csv
+examples/*output*.csv
+
+# Data and ML artifacts that should not be committed accidentally
+data/
+datasets/
+artifacts/
+mlruns/
+*.parquet
+*.pkl
+*.pickle
+
+# Keep the reviewed, tiny demo model explicitly tracked
+!decision_tree_pipeline.joblib
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
