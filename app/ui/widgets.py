@@ -1,3 +1,5 @@
+"""Reusable CustomTkinter widgets and image helpers."""
+
 from __future__ import annotations
 
 import logging
@@ -12,26 +14,66 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Card(ctk.CTkFrame):
+    """Themed panel container used across application pages."""
+
     def __init__(self, master, **kwargs):
+        """Initialize a themed card.
+
+        Args:
+            master: Parent Tk widget.
+            **kwargs: Additional ``CTkFrame`` configuration.
+
+        """
         super().__init__(
             master,
             fg_color=Theme.COLORS["panel"],
             border_color=Theme.COLORS["border"],
             border_width=1,
             corner_radius=16,
-            **kwargs
+            **kwargs,
         )
 
 
 def section_title(master, text: str):
+    """Create a consistently styled section heading.
+
+    Args:
+        master: Parent Tk widget.
+        text: Heading text.
+
+    Returns:
+        Configured ``CTkLabel`` instance.
+
+    """
     return ctk.CTkLabel(master, text=text, font=Theme.font("h2"), text_color=Theme.COLORS["text"])
 
 
 def muted_label(master, text: str):
+    """Create a secondary-text label.
+
+    Args:
+        master: Parent Tk widget.
+        text: Label text.
+
+    Returns:
+        Configured ``CTkLabel`` instance.
+
+    """
     return ctk.CTkLabel(master, text=text, font=Theme.font("small"), text_color=Theme.COLORS["text_muted"])
 
 
 def pill(master, text: str, color: str):
+    """Create a rounded status badge.
+
+    Args:
+        master: Parent Tk widget.
+        text: Badge text.
+        color: Badge background color.
+
+    Returns:
+        Configured ``CTkLabel`` instance.
+
+    """
     return ctk.CTkLabel(
         master,
         text=text,
@@ -45,7 +87,17 @@ def pill(master, text: str, color: str):
 
 
 class ToolTip:
+    """Delayed hover tooltip for Tk and CustomTkinter widgets."""
+
     def __init__(self, widget, text: str, delay_ms: int = 400) -> None:
+        """Initialize and bind a tooltip.
+
+        Args:
+            widget: Widget that owns the tooltip.
+            text: Tooltip text.
+            delay_ms: Delay before showing the tooltip, in milliseconds.
+
+        """
         self.widget = widget
         self.text = text
         self.delay_ms = delay_ms
@@ -123,10 +175,27 @@ class ToolTip:
 
 
 def attach_tooltip(widget, text: str) -> None:
+    """Attach a persistent tooltip object to a widget.
+
+    Args:
+        widget: Widget that should display the tooltip.
+        text: Tooltip text.
+
+    """
     widget._tooltip = ToolTip(widget, text=text)
 
 
 def load_image(path: str, target: int = 160):
+    """Load and scale an image for CustomTkinter.
+
+    Args:
+        path: Image file path.
+        target: Maximum output width or height in pixels.
+
+    Returns:
+        Scaled ``CTkImage``, or ``None`` when the file cannot be loaded.
+
+    """
     try:
         image = Image.open(path)
     except OSError:

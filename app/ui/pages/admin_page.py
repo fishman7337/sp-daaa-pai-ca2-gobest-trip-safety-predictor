@@ -1,3 +1,5 @@
+"""Administrative feedback metrics and export page."""
+
 from __future__ import annotations
 
 import csv
@@ -14,7 +16,16 @@ from app.ui.widgets import Card, load_image, muted_label, pill, section_title
 
 
 class AdminPage(ctk.CTkFrame):
+    """Dashboard for prediction feedback, drift indicators, and exports."""
+
     def __init__(self, master, store: DataStore):
+        """Initialize the administrative dashboard.
+
+        Args:
+            master: Parent Tk widget.
+            store: Shared in-memory application data store.
+
+        """
         super().__init__(master, fg_color=Theme.COLORS["bg"])
         self.store = store
         self._unsubscribe = self.store.subscribe(self.refresh)
@@ -147,7 +158,9 @@ class AdminPage(ctk.CTkFrame):
         self.card_recent.grid_rowconfigure(2, weight=1)
 
         section_title(self.card_recent, "Recent Feedback").grid(row=0, column=0, sticky="w", padx=20, pady=(16, 2))
-        muted_label(self.card_recent, "Most recent 5 submissions.").grid(row=1, column=0, sticky="w", padx=20, pady=(0, 10))
+        muted_label(self.card_recent, "Most recent 5 submissions.").grid(
+            row=1, column=0, sticky="w", padx=20, pady=(0, 10)
+        )
 
         self.recent_box = ctk.CTkTextbox(
             self.card_recent,
@@ -213,6 +226,7 @@ class AdminPage(ctk.CTkFrame):
         self.refresh()
 
     def refresh(self) -> None:
+        """Refresh feedback statistics, drift messaging, and recent entries."""
         stats = self.store.stats()
         total = int(stats["total"])
         total_predictions = int(stats["total_predictions"])
@@ -264,6 +278,7 @@ class AdminPage(ctk.CTkFrame):
         return load_image(path, target=140)
 
     def export_csv(self) -> None:
+        """Prompt for a destination and export the administrative report."""
         rows = self.store.export_rows()
         if not rows:
             self.drift_badge.configure(text="INFO", fg_color=Theme.COLORS["warn"])
@@ -280,9 +295,7 @@ class AdminPage(ctk.CTkFrame):
             return
 
         with open(save_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(
-                f, fieldnames=["booking_id", "predicted_label", "actual_label", "rating", "match"]
-            )
+            writer = csv.DictWriter(f, fieldnames=["booking_id", "predicted_label", "actual_label", "rating", "match"])
             writer.writeheader()
             writer.writerows(rows)
 

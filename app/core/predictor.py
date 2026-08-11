@@ -1,3 +1,5 @@
+"""Predict trip safety with a model pipeline or heuristic fallback."""
+
 from __future__ import annotations
 
 import math
@@ -19,17 +21,28 @@ except Exception:  # pragma: no cover - fallback when joblib isn't installed
 
 @dataclass
 class Prediction:
-    label: int              # 0 safe, 1 dangerous
-    prob_dangerous: float   # 0..1
+    """Describe one trip safety prediction.
+
+    Attributes:
+        label: Predicted class, where zero is safe and one is dangerous.
+        prob_dangerous: Estimated probability of the dangerous class.
+        message: Human-readable prediction explanation.
+        source: Mechanism that produced the prediction.
+    """
+
+    label: int  # 0 safe, 1 dangerous
+    prob_dangerous: float  # 0..1
     message: str
     source: str = "model"
 
 
 class Predictor:
+    """Predict trip safety with an optional trained model pipeline.
+
+    A deterministic heuristic is used when the model is unavailable or an input
+    cannot satisfy the model's expected feature schema.
     """
-    Predictor with optional real model pipeline; falls back to heuristic when inputs
-    don't match the model's expected features.
-    """
+
     MODEL_FILENAME = "decision_tree_pipeline.joblib"
     MODEL_VERSION = "Dummy v0"
     DEFAULT_RATING = 3.0
@@ -39,12 +52,21 @@ class Predictor:
     _shared_error: str | None = None
 
     def __init__(self) -> None:
+        """Load shared model state and expose it on this predictor instance."""
         self._ensure_loaded()
         self.pipeline = Predictor._shared_pipeline
         self.feature_names = list(Predictor._shared_features)
         self.model_error = Predictor._shared_error
 
     def predict_one(self, x: dict[str, float]) -> Prediction:
+        """Predict the safety class of one trip feature mapping.
+
+        Args:
+            x: Raw or engineered numeric trip features.
+
+        Returns:
+            The predicted label, probability, message, and prediction source.
+        """
         x_clean = preprocess_inputs_dict(x)
         x_feat = add_engineered_features(x_clean)
 
@@ -111,11 +133,21 @@ class Predictor:
 
     @classmethod
     def model_version(cls) -> str:
+        """Return the loaded model's version label.
+
+        Returns:
+            Current model version label.
+        """
         cls._ensure_loaded()
         return cls.MODEL_VERSION
 
     @classmethod
     def model_status(cls) -> str:
+        """Return the model version together with any loading error.
+
+        Returns:
+            Model version label, optionally followed by a loading error.
+        """
         cls._ensure_loaded()
         if cls._shared_error:
             return f"{cls.MODEL_VERSION} (error: {cls._shared_error})"
@@ -147,7 +179,7 @@ class Predictor:
                 continue
 
             if name.startswith("num__"):
-                base = name[len("num__"):]
+                base = name[len("num__") :]
                 if base in x_feat:
                     row[name] = float(x_feat.get(base, 0.0))
                     continue
@@ -163,9 +195,14 @@ class Predictor:
         return pd.DataFrame([row])
 
     def _predict_fallback(self, x: dict[str, float], reason: str) -> Prediction:
-        """
-        Heuristic fallback:
-        - Higher speed + strong acceleration + strong gyro => more dangerous
+        """Estimate trip risk with the deterministic fallback heuristic.
+
+        Args:
+            x: Clean numeric trip features.
+            reason: Explanation of why the trained model was not used.
+
+        Returns:
+            A heuristic prediction based on speed, acceleration, and gyroscope data.
         """
         speed = x.get("speed", 0.0)
         ax = abs(x.get("acceleration_x", 0.0))
@@ -175,11 +212,7 @@ class Predictor:
         gy = abs(x.get("gyro_y", 0.0))
         gz = abs(x.get("gyro_z", 0.0))
 
-        score = (
-            0.12 * speed
-            + 0.25 * (ax + ay + az)
-            + 0.18 * (gx + gy + gz)
-        )
+        score = 0.12 * speed + 0.25 * (ax + ay + az) + 0.18 * (gx + gy + gz)
 
         prob = 1.0 / (1.0 + math.exp(-(score - 6.5)))
         prob = float(np.clip(prob, 0.0, 1.0))

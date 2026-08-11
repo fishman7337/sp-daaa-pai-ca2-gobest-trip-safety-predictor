@@ -1,3 +1,5 @@
+"""Detect distribution drift in trip sensor features."""
+
 from __future__ import annotations
 
 from collections import deque
@@ -9,6 +11,17 @@ import pandas as pd
 
 @dataclass
 class DriftReport:
+    """Describe the outcome of a feature drift analysis.
+
+    Attributes:
+        drifted: Whether any monitored feature crossed the drift threshold.
+        score: Largest absolute standardized mean difference.
+        feature_scores: Standardized mean differences keyed by feature.
+        message: Human-readable analysis status.
+        ref_ready: Whether the reference baseline is available.
+        window_ready: Whether the recent comparison window is available.
+    """
+
     drifted: bool
     score: float
     feature_scores: dict[str, float]
@@ -18,6 +31,8 @@ class DriftReport:
 
 
 class DriftMonitor:
+    """Compare recent feature means with a learned reference baseline."""
+
     def __init__(
         self,
         fields: list[str],
@@ -25,6 +40,17 @@ class DriftMonitor:
         window_size: int = 20,
         z_threshold: float = 3.0,
     ) -> None:
+        """Configure the reference and rolling comparison windows.
+
+        Args:
+            fields: Feature names to monitor.
+            reference_size: Samples used to establish the baseline.
+            window_size: Recent samples used for each comparison.
+            z_threshold: Absolute standardized difference that signals drift.
+
+        Raises:
+            ValueError: If either sample window is smaller than five.
+        """
         if reference_size < 5:
             raise ValueError("reference_size must be >= 5")
         if window_size < 5:
@@ -39,12 +65,21 @@ class DriftMonitor:
         self._ref_std: np.ndarray | None = None
 
     def reset_reference(self) -> None:
+        """Discard the learned baseline and all recent samples."""
         self._reference_samples = []
         self._window.clear()
         self._ref_mean = None
         self._ref_std = None
 
     def update(self, sample: dict[str, float]) -> DriftReport:
+        """Ingest one sample and report current drift status.
+
+        Args:
+            sample: Numeric feature values keyed by monitored field name.
+
+        Returns:
+            The baseline collection, window collection, or drift status.
+        """
         vector = [float(sample.get(f, 0.0)) for f in self.fields]
 
         if self._ref_mean is None or self._ref_std is None:
@@ -82,6 +117,14 @@ class DriftMonitor:
         return self._compute_report(np.array(self._window))
 
     def analyze_dataframe(self, df: pd.DataFrame) -> DriftReport:
+        """Compare the leading and trailing windows of a data frame.
+
+        Args:
+            df: Frame containing every configured feature field.
+
+        Returns:
+            A drift report or a readiness explanation for unsuitable input.
+        """
         if df.empty:
             return DriftReport(
                 drifted=False,

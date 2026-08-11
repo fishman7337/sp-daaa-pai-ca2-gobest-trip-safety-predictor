@@ -1,3 +1,5 @@
+"""About-page view describing application capabilities and context."""
+
 from __future__ import annotations
 
 import os
@@ -9,7 +11,16 @@ from app.ui.widgets import Card, load_image, muted_label, pill, section_title
 
 
 class AboutPage(ctk.CTkFrame):
+    """Static project and application information page."""
+
     def __init__(self, master, _store=None):
+        """Initialize the about page.
+
+        Args:
+            master: Parent Tk widget.
+            _store: Unused data-store argument retained for page-constructor parity.
+
+        """
         super().__init__(master, fg_color=Theme.COLORS["bg"])
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)

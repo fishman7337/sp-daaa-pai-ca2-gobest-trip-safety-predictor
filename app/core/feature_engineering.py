@@ -1,3 +1,5 @@
+"""Derive behavior-level features from trip sensor observations."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,6 +12,7 @@ import pandas as pd
 @dataclass(frozen=True)
 class FEConfig:
     """Configuration for behaviour-level feature engineering."""
+
     eps: float = 1e-9
 
     stop_speed: float = 0.5
@@ -32,11 +35,30 @@ class FEConfig:
 
 
 def wrap_angle_delta_deg(curr: np.ndarray, prev: np.ndarray) -> np.ndarray:
+    """Calculate signed angular differences with wraparound.
+
+    Args:
+        curr: Current headings in degrees.
+        prev: Previous headings in degrees.
+
+    Returns:
+        Element-wise heading changes constrained to the range [-180, 180].
+    """
     delta = (curr - prev) % 360.0
     return np.where(delta > 180.0, delta - 360.0, delta)
 
 
 def robust_spike_count(x: np.ndarray, z_thresh: float, eps: float) -> int:
+    """Count finite values whose robust z-score reaches a threshold.
+
+    Args:
+        x: Values to evaluate.
+        z_thresh: Minimum absolute robust z-score counted as a spike.
+        eps: Stabilizer added to the median absolute deviation.
+
+    Returns:
+        Number of values classified as spikes.
+    """
     s = pd.Series(x).replace([np.inf, -np.inf], np.nan).dropna()
     if s.empty:
         return 0
@@ -47,6 +69,14 @@ def robust_spike_count(x: np.ndarray, z_thresh: float, eps: float) -> int:
 
 
 def longest_true_streak(mask: np.ndarray) -> int:
+    """Find the longest contiguous run of truthy values.
+
+    Args:
+        mask: One-dimensional array of truthy or falsey values.
+
+    Returns:
+        Length of the longest truthy run.
+    """
     if mask.size == 0:
         return 0
     max_run = 0
@@ -68,6 +98,18 @@ def compute_trip_features(
     rating_col: str = "rating",
     default_rating: float = 3.0,
 ) -> dict[str, Any]:
+    """Compute behavioral risk features for one trip.
+
+    Args:
+        df_trip: Time-series sensor observations for a single trip.
+        cfg: Thresholds and weights used for feature calculation.
+        id_col: Column containing the trip identifier.
+        rating_col: Optional column containing the trip rating.
+        default_rating: Rating used when the configured column has no value.
+
+    Returns:
+        Trip metadata and derived event, rate, streak, and aggression features.
+    """
     trip_id = df_trip[id_col].iloc[0]
 
     sec = pd.to_numeric(df_trip.get("second"), errors="coerce").to_numpy(dtype=float)
@@ -159,10 +201,7 @@ def compute_trip_features(
     )
 
     bearing_jump = (
-        np.isfinite(dbrg)
-        & (np.abs(dbrg) > cfg.bearing_jump)
-        & np.isfinite(spd_mid)
-        & (spd_mid > cfg.min_speed_turn)
+        np.isfinite(dbrg) & (np.abs(dbrg) > cfg.bearing_jump) & np.isfinite(spd_mid) & (spd_mid > cfg.min_speed_turn)
     )
 
     high_speed_turn = sharp_turn & (spd_mid > cfg.high_speed)
@@ -239,6 +278,17 @@ def compute_trip_features_frame(
     cfg: FEConfig | None = None,
     default_rating: float = 3.0,
 ) -> pd.DataFrame:
+    """Compute behavioral features for every trip in a data frame.
+
+    Args:
+        df: Sensor observations containing one or more trips.
+        id_col: Column used to group observations into trips.
+        cfg: Optional feature-engineering configuration.
+        default_rating: Rating used when a trip has no usable rating.
+
+    Returns:
+        One derived feature row per trip, or a copy when ``id_col`` is absent.
+    """
     if id_col not in df.columns:
         return df.copy()
     cfg = cfg or FEConfig()

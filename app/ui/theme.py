@@ -1,9 +1,13 @@
+"""Application color and typography theme definitions."""
+
 from __future__ import annotations
 
 import customtkinter as ctk
 
 
 class Theme:
+    """Centralized light and dark appearance settings."""
+
     _DARK = {
         "bg": "#0a0e14",
         "panel": "#0f1522",
@@ -49,11 +53,18 @@ class Theme:
 
     @staticmethod
     def apply_global() -> None:
+        """Apply the current appearance mode and base color theme."""
         ctk.set_appearance_mode(Theme.MODE)
         ctk.set_default_color_theme("blue")  # base theme; we still override colors manually
 
     @staticmethod
     def set_mode(mode: str) -> None:
+        """Select the active light or dark palette.
+
+        Args:
+            mode: Requested appearance mode; values other than ``light`` use dark mode.
+
+        """
         mode = mode.lower()
         Theme.MODE = "light" if mode == "light" else "dark"
         Theme.COLORS = dict(Theme._LIGHT if Theme.MODE == "light" else Theme._DARK)
@@ -61,6 +72,15 @@ class Theme:
 
     @staticmethod
     def font(kind: str):
+        """Return the configured system-font tuple for a semantic role.
+
+        Args:
+            kind: Font role such as ``title``, ``body``, or ``mono``.
+
+        Returns:
+            Tk-compatible font tuple.
+
+        """
         # Use system fonts; keep it consistent
         if kind == "title":
             return ("Bahnschrift", 22, "bold")

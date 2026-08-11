@@ -1,3 +1,5 @@
+"""Single-record trip-safety prediction page."""
+
 from __future__ import annotations
 
 import os
@@ -21,7 +23,16 @@ FIELD_GROUPS = [
 
 
 class RealTimePage(ctk.CTkFrame):
+    """Interactive form for validating and scoring one sensor record."""
+
     def __init__(self, master, store: DataStore):
+        """Initialize the real-time prediction page.
+
+        Args:
+            master: Parent Tk widget.
+            store: Shared in-memory application data store.
+
+        """
         super().__init__(master, fg_color=Theme.COLORS["bg"])
         self.predictor = Predictor()
         self.store = store
@@ -37,7 +48,9 @@ class RealTimePage(ctk.CTkFrame):
         header.grid_columnconfigure(0, weight=1)
         header.grid_columnconfigure(1, weight=0)
 
-        title = ctk.CTkLabel(header, text="Real-time Prediction", font=Theme.font("h1"), text_color=Theme.COLORS["text"])
+        title = ctk.CTkLabel(
+            header, text="Real-time Prediction", font=Theme.font("h1"), text_color=Theme.COLORS["text"]
+        )
         title.grid(row=0, column=0, sticky="w")
 
         desc = ctk.CTkLabel(
@@ -298,6 +311,7 @@ class RealTimePage(ctk.CTkFrame):
         ).grid(row=1, column=0, sticky="w", padx=14, pady=(0, 12))
 
     def on_predict(self) -> None:
+        """Validate form values, run inference, and store the prediction."""
         raw = {k: self.entries[k].get() for k in REQUIRED_FIELDS}
         v = validate_numeric_inputs(raw)
         if not v.ok:
@@ -343,6 +357,7 @@ class RealTimePage(ctk.CTkFrame):
         self.status.configure(text="OK. Prediction complete.", text_color=Theme.COLORS["good"])
 
     def copy_booking_id(self) -> None:
+        """Copy the latest booking identifier to the system clipboard."""
         if not self.last_booking_id:
             self.status.configure(text="No Booking ID to copy yet.", text_color=Theme.COLORS["warn"])
             return

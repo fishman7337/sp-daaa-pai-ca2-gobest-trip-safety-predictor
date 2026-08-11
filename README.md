@@ -6,6 +6,15 @@ This project was created for Singapore Polytechnic DAAA Practical AI CA2 (ST1508
 
 > This is an educational project. It is not intended for real-world safety, insurance, dispatch, enforcement, or employment decisions.
 
+## Evidence and interpretation
+
+| Evidence-backed measure | Current repository evidence |
+| --- | --- |
+| Packaged quality gate | **63 tests** plus a PyInstaller smoke mode validate a **19-feature** decision-tree pipeline and five runtime UI assets. |
+| Release artifact | The verified Windows GUI executable is about **78.8 MB** and passes packaged inference smoke validation. |
+
+The qualitative outcome is an offline GUI and batch-inference application with feedback/admin flows and a reproducible Windows build. Single-record “real-time” mode is a documented heuristic fallback; unsupported model-comparison or MLflow claims are excluded.
+
 ## Screenshots
 
 Screenshots are captured from the running desktop app and stored under `docs/screenshots/`.

@@ -1,3 +1,5 @@
+"""Store predictions and rider feedback safely in memory."""
+
 from __future__ import annotations
 
 import logging
@@ -12,6 +14,16 @@ LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class FeedbackEntry:
+    """Represent rider feedback associated with a booking.
+
+    Attributes:
+        booking_id: Booking identifier tied to an existing prediction.
+        felt_safe: Whether the rider reported feeling safe.
+        rating: Numeric rating supplied by the rider.
+        notes: Free-form rider comments.
+        created_at: Time at which the feedback entry was created.
+    """
+
     booking_id: str
     felt_safe: bool
     rating: int
@@ -21,6 +33,15 @@ class FeedbackEntry:
 
 @dataclass
 class PredictionEntry:
+    """Represent a stored trip safety prediction.
+
+    Attributes:
+        booking_id: Unique booking identifier.
+        predicted_label: Predicted class, where zero is safe and one is dangerous.
+        prob_dangerous: Estimated probability of the dangerous class.
+        created_at: Time at which the prediction entry was created.
+    """
+
     booking_id: str
     predicted_label: int
     prob_dangerous: float
@@ -28,7 +49,10 @@ class PredictionEntry:
 
 
 class DataStore:
+    """Maintain thread-safe, in-memory prediction and feedback records."""
+
     def __init__(self) -> None:
+        """Initialize empty record collections and listener state."""
         self._lock = RLock()
         self._feedback: list[FeedbackEntry] = []
         self._predictions: dict[str, PredictionEntry] = {}
@@ -36,9 +60,22 @@ class DataStore:
         self.last_booking_id: str = ""
 
     def new_booking_id(self) -> str:
+        """Create a booking identifier suitable for a new prediction.
+
+        Returns:
+            A booking identifier with the ``BK-`` prefix.
+        """
         return f"BK-{uuid.uuid4().hex[:8].upper()}"
 
     def add_prediction(self, entry: PredictionEntry) -> None:
+        """Store a prediction and notify subscribers.
+
+        Args:
+            entry: Prediction record to store.
+
+        Raises:
+            ValueError: If the booking identifier is already present.
+        """
         with self._lock:
             if entry.booking_id in self._predictions:
                 raise ValueError("Booking ID already exists.")
@@ -47,6 +84,14 @@ class DataStore:
         self._notify()
 
     def add_feedback(self, entry: FeedbackEntry) -> None:
+        """Store feedback for a previously predicted booking.
+
+        Args:
+            entry: Feedback record to store.
+
+        Raises:
+            ValueError: If no prediction exists or feedback was already submitted.
+        """
         with self._lock:
             if entry.booking_id not in self._predictions:
                 raise ValueError("Booking ID not found. Predict first.")
@@ -56,22 +101,53 @@ class DataStore:
         self._notify()
 
     def all_feedback(self) -> list[FeedbackEntry]:
+        """Return a snapshot of all feedback records.
+
+        Returns:
+            Feedback records in insertion order.
+        """
         with self._lock:
             return list(self._feedback)
 
     def all_predictions(self) -> list[PredictionEntry]:
+        """Return a snapshot of all prediction records.
+
+        Returns:
+            Prediction records in insertion order.
+        """
         with self._lock:
             return list(self._predictions.values())
 
     def get_prediction(self, booking_id: str) -> PredictionEntry | None:
+        """Look up a prediction by booking identifier.
+
+        Args:
+            booking_id: Identifier of the booking to find.
+
+        Returns:
+            The matching prediction, or ``None`` when it is absent.
+        """
         with self._lock:
             return self._predictions.get(booking_id)
 
     def recent_booking_ids(self, limit: int = 10) -> list[str]:
+        """Return the most recently stored booking identifiers.
+
+        Args:
+            limit: Maximum number of identifiers to return.
+
+        Returns:
+            Up to ``limit`` identifiers in insertion order.
+        """
         with self._lock:
             return [p.booking_id for p in list(self._predictions.values())[-limit:]]
 
     def export_rows(self) -> list[dict[str, str]]:
+        """Build exportable rows that pair feedback with predictions.
+
+        Returns:
+            String-valued rows for bookings with both prediction and feedback.
+        """
         with self._lock:
             feedback_rows = list(self._feedback)
             predictions = dict(self._predictions)
@@ -95,6 +171,11 @@ class DataStore:
         return rows
 
     def stats(self) -> dict[str, float]:
+        """Calculate aggregate prediction and feedback metrics.
+
+        Returns:
+            Counts and rates for feedback coverage, safety, ratings, and matches.
+        """
         with self._lock:
             feedback_rows = list(self._feedback)
             predictions = dict(self._predictions)
@@ -132,6 +213,14 @@ class DataStore:
         }
 
     def subscribe(self, callback: Callable[[], None]) -> Callable[[], None]:
+        """Register a callback for store changes.
+
+        Args:
+            callback: Zero-argument function invoked after a stored change.
+
+        Returns:
+            A function that unregisters the callback.
+        """
         with self._lock:
             self._listeners.append(callback)
 

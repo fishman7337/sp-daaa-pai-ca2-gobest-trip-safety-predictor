@@ -1,3 +1,5 @@
+"""Run batch trip safety predictions from CSV inputs."""
+
 from __future__ import annotations
 
 import uuid
@@ -14,6 +16,14 @@ from app.core.schema import REQUIRED_FIELDS
 
 @dataclass
 class BatchResult:
+    """Summarize the output of a batch prediction run.
+
+    Attributes:
+        output_path: Path of the generated prediction CSV.
+        rows: Number of predicted trips written to the CSV.
+        dangerous_count: Number of trips classified as dangerous.
+    """
+
     output_path: str
     rows: int
     dangerous_count: int
@@ -34,6 +44,21 @@ def run_batch(
     *,
     return_df: bool = True,
 ) -> tuple[BatchResult, pd.DataFrame | None]:
+    """Predict trip safety for every trip represented in a CSV file.
+
+    Args:
+        predictor: Predictor used to classify each trip.
+        csv_path: Path to the source CSV.
+        output_path: Path where prediction results are written.
+        store: Optional in-memory store that receives each prediction.
+        return_df: Whether to return the generated result frame.
+
+    Returns:
+        A batch summary and, when requested, the generated result frame.
+
+    Raises:
+        ValueError: If the CSV lacks the fields required for prediction.
+    """
     # Read header only to decide fast path
     header_df = pd.read_csv(csv_path, nrows=0)
     header_cols = [str(c).strip().lower() for c in header_df.columns]

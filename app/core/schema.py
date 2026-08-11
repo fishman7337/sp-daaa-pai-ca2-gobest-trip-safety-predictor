@@ -1,3 +1,5 @@
+"""Define canonical trip input fields, limits, aliases, and labels."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

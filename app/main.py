@@ -1,9 +1,16 @@
+"""Desktop entry point for the Gobest trip safety predictor."""
+
 from __future__ import annotations
+
+import argparse
+import sys
+from collections.abc import Sequence
 
 import customtkinter as ctk
 
 from app.core.data_store import DataStore
 from app.core.predictor import Predictor
+from app.smoke import validate_distribution
 from app.ui.pages.about_page import AboutPage
 from app.ui.pages.admin_page import AdminPage
 from app.ui.pages.batch_page import BatchPage
@@ -13,7 +20,10 @@ from app.ui.theme import Theme
 
 
 class App(ctk.CTk):
+    """Gobest desktop application window."""
+
     def __init__(self) -> None:
+        """Initialize the application window and its pages."""
         super().__init__()
 
         Theme.apply_global()
@@ -152,6 +162,12 @@ class App(ctk.CTk):
         self.nav_buttons[key] = btn
 
     def show_page(self, key: str) -> None:
+        """Display one application page and update navigation styling.
+
+        Args:
+            key: Page identifier registered in ``self.pages``.
+
+        """
         self.current_page = key
         # Visual active state
         for k, btn in self.nav_buttons.items():
@@ -173,10 +189,49 @@ class App(ctk.CTk):
         self.pages[key].tkraise()
 
 
-def main() -> None:
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments.
+
+    Args:
+        argv: Arguments to parse, excluding the executable name.
+
+    Returns:
+        Parsed application arguments.
+
+    """
+    parser = argparse.ArgumentParser(description="Gobest Cab Trip Safety Predictor")
+    parser.add_argument(
+        "--smoke-test",
+        action="store_true",
+        help="validate packaged resources and model inference without opening the GUI",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the desktop application or its non-interactive smoke test.
+
+    Args:
+        argv: Optional command-line arguments, excluding the executable name.
+
+    Returns:
+        Process exit code.
+
+    """
+    args = _parse_args(argv)
+    if args.smoke_test:
+        try:
+            validate_distribution()
+        except Exception as exc:  # pragma: no cover - exercised by packaged CI
+            if sys.stderr is not None:
+                print(f"Smoke test failed: {exc}", file=sys.stderr)
+            return 1
+        return 0
+
     app = App()
     app.mainloop()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
