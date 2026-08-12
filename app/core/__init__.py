@@ -1,1 +1,1 @@
-# core package
+"""Core trip safety prediction services."""

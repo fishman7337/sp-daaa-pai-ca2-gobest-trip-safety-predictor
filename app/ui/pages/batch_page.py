@@ -1,3 +1,5 @@
+"""Batch CSV prediction and export page."""
+
 from __future__ import annotations
 
 import math
@@ -21,7 +23,16 @@ from app.ui.widgets import Card, load_image, muted_label, pill, section_title
 
 
 class BatchPage(ctk.CTkFrame):
+    """Page for loading, scoring, previewing, and exporting trip CSV data."""
+
     def __init__(self, master, store: DataStore):
+        """Initialize the batch-prediction page.
+
+        Args:
+            master: Parent Tk widget.
+            store: Shared in-memory application data store.
+
+        """
         super().__init__(master, fg_color=Theme.COLORS["bg"])
         self.predictor = Predictor()
         self.csv_path: str | None = None
@@ -38,7 +49,9 @@ class BatchPage(ctk.CTkFrame):
         header.grid_columnconfigure(0, weight=1)
         header.grid_columnconfigure(1, weight=0)
 
-        title = ctk.CTkLabel(header, text="Batch CSV Prediction", font=Theme.font("h1"), text_color=Theme.COLORS["text"])
+        title = ctk.CTkLabel(
+            header, text="Batch CSV Prediction", font=Theme.font("h1"), text_color=Theme.COLORS["text"]
+        )
         title.grid(row=0, column=0, sticky="w")
 
         desc = ctk.CTkLabel(
@@ -263,6 +276,7 @@ class BatchPage(ctk.CTkFrame):
         return f"{size:.1f} TB"
 
     def on_upload(self) -> None:
+        """Prompt for a CSV file and prepare it for prediction."""
         path = filedialog.askopenfilename(
             title="Select CSV",
             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
@@ -282,6 +296,7 @@ class BatchPage(ctk.CTkFrame):
         self.output_path = None
 
     def on_run(self) -> None:
+        """Start batch inference in a background worker."""
         if not self.csv_path:
             self.badge.configure(text="ERROR", fg_color=Theme.COLORS["bad"])
             self.summary.configure(text="Please upload a CSV first.")
@@ -450,6 +465,7 @@ class BatchPage(ctk.CTkFrame):
                 )
 
     def on_export(self) -> None:
+        """Prompt for a destination and copy the generated prediction CSV."""
         if not self.output_path:
             self.badge.configure(text="INFO", fg_color=Theme.COLORS["warn"])
             self.summary.configure(text="Run prediction first to generate output.")

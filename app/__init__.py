@@ -1,1 +1,1 @@
-# app package
+"""Trip safety prediction application."""

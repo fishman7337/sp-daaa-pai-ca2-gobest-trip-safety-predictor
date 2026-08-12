@@ -1,3 +1,5 @@
+"""Normalize sensor inputs and aggregate trip-level model features."""
+
 from __future__ import annotations
 
 import math
@@ -27,6 +29,15 @@ def _apply_aliases(columns: Iterable[str]) -> dict[str, str]:
 
 
 def clean_batch_inputs(df: pd.DataFrame, *, fill_missing: bool = True) -> pd.DataFrame:
+    """Normalize and clean recognized sensor columns in a data frame.
+
+    Args:
+        df: Input frame whose original content must remain unchanged.
+        fill_missing: Whether to replace missing recognized values with zero.
+
+    Returns:
+        A cleaned copy with normalized names, aliases, and numeric values.
+    """
     df_clean = df.copy()
     df_clean = df_clean.rename(columns={c: _normalize_key(c) for c in df_clean.columns})
     # Drop common artefact columns
@@ -58,6 +69,14 @@ def clean_batch_inputs(df: pd.DataFrame, *, fill_missing: bool = True) -> pd.Dat
 
 
 def preprocess_inputs_dict(values: dict[str, Any]) -> dict[str, float]:
+    """Normalize one mapping of trip inputs into finite model values.
+
+    Args:
+        values: Raw trip fields keyed by user- or dataset-facing names.
+
+    Returns:
+        Canonically named floats with missing required values set to zero.
+    """
     normalized = {_normalize_key(k): v for k, v in values.items()}
     alias_map = _apply_aliases(normalized.keys())
     if alias_map:
@@ -87,6 +106,14 @@ def preprocess_inputs_dict(values: dict[str, Any]) -> dict[str, float]:
 
 
 def add_engineered_features(values: dict[str, float]) -> dict[str, float]:
+    """Add acceleration and gyroscope magnitudes to a feature mapping.
+
+    Args:
+        values: Numeric sensor features.
+
+    Returns:
+        A copy containing the original values and two magnitude features.
+    """
     out = dict(values)
     ax = float(out.get("acceleration_x", 0.0))
     ay = float(out.get("acceleration_y", 0.0))
@@ -106,6 +133,16 @@ def aggregate_trip_features(
     *,
     fast: bool = True,
 ) -> pd.DataFrame:
+    """Aggregate sensor observations into one feature row per trip.
+
+    Args:
+        df: Sensor observations to aggregate.
+        id_col: Column used to group observations into trips.
+        fast: Whether to skip expensive sequential statistics.
+
+    Returns:
+        Trip-level aggregate features, or a copy when ``id_col`` is absent.
+    """
     if id_col not in df.columns:
         return df.copy()
 
@@ -192,6 +229,7 @@ def aggregate_trip_features(
             out[col] = math.nan
 
     if not fast and "second" in dfc.columns:
+
         def _speed_change_rate(group: pd.DataFrame) -> float:
             spd = group.get("speed")
             t = group.get("second")
@@ -271,6 +309,17 @@ def aggregate_trip_features_streaming(
     id_col: str = "booking_id",
     chunksize: int = 200_000,
 ) -> pd.DataFrame:
+    """Aggregate a large trip CSV incrementally in bounded-size chunks.
+
+    Args:
+        csv_path: Path to the source CSV.
+        id_col: Column used to group observations into trips.
+        chunksize: Maximum number of CSV rows read per chunk.
+
+    Returns:
+        Trip-level aggregate features combined across all chunks.
+    """
+
     def _merge_stats(acc: dict[str, dict[str, float]], row: pd.Series) -> None:
         bid = row[id_col]
         if bid not in acc:
@@ -316,9 +365,19 @@ def aggregate_trip_features_streaming(
 
         g = chunk.groupby(id_col, sort=False)
 
-        stats_cols = [c for c in ("speed", "acc_magnitude", "gyro_magnitude", "accuracy",
-                                  "acceleration_x", "acceleration_y", "acceleration_z")
-                      if c in chunk.columns]
+        stats_cols = [
+            c
+            for c in (
+                "speed",
+                "acc_magnitude",
+                "gyro_magnitude",
+                "accuracy",
+                "acceleration_x",
+                "acceleration_y",
+                "acceleration_z",
+            )
+            if c in chunk.columns
+        ]
         for c in stats_cols:
             chunk[f"{c}__sq"] = chunk[c] * chunk[c]
 

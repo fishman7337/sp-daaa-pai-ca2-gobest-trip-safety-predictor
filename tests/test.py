@@ -646,9 +646,7 @@ def test_predictor_uses_engineered_features() -> None:
     saved = _set_predictor_shared(pipeline=DummyPipeline(), features=["acc_magnitude"])
     try:
         predictor = Predictor()
-        pred = predictor.predict_one(
-            {"acceleration_x": 1.0, "acceleration_y": 2.0, "acceleration_z": 2.0}
-        )
+        pred = predictor.predict_one({"acceleration_x": 1.0, "acceleration_y": 2.0, "acceleration_z": 2.0})
         assert pred.label == 1
         assert math.isclose(pred.prob_dangerous, 0.8)
         assert pred.message == "Model prediction completed."

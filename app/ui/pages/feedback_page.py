@@ -1,3 +1,5 @@
+"""Trip-feedback collection page."""
+
 from __future__ import annotations
 
 import os
@@ -10,7 +12,16 @@ from app.ui.widgets import Card, load_image, muted_label, pill, section_title
 
 
 class FeedbackPage(ctk.CTkFrame):
+    """Page for linking rider feedback to stored predictions."""
+
     def __init__(self, master, store: DataStore):
+        """Initialize the feedback form.
+
+        Args:
+            master: Parent Tk widget.
+            store: Shared in-memory application data store.
+
+        """
         super().__init__(master, fg_color=Theme.COLORS["bg"])
         self.store = store
         self.images = {}
@@ -117,9 +128,9 @@ class FeedbackPage(ctk.CTkFrame):
         self.safe_choice.grid(row=5, column=0, sticky="w", padx=16)
 
         # Rating
-        ctk.CTkLabel(form, text="Trip Rating (1-5) *", font=Theme.font("small"), text_color=Theme.COLORS["text_muted"]).grid(
-            row=6, column=0, sticky="w", padx=16, pady=(14, 4)
-        )
+        ctk.CTkLabel(
+            form, text="Trip Rating (1-5) *", font=Theme.font("small"), text_color=Theme.COLORS["text_muted"]
+        ).grid(row=6, column=0, sticky="w", padx=16, pady=(14, 4))
         self.rating_choice = ctk.CTkOptionMenu(
             form,
             values=["1", "2", "3", "4", "5"],
@@ -132,9 +143,9 @@ class FeedbackPage(ctk.CTkFrame):
         self.rating_choice.grid(row=7, column=0, sticky="w", padx=16)
 
         # Notes
-        ctk.CTkLabel(form, text="Additional Notes", font=Theme.font("small"), text_color=Theme.COLORS["text_muted"]).grid(
-            row=8, column=0, sticky="w", padx=16, pady=(14, 4)
-        )
+        ctk.CTkLabel(
+            form, text="Additional Notes", font=Theme.font("small"), text_color=Theme.COLORS["text_muted"]
+        ).grid(row=8, column=0, sticky="w", padx=16, pady=(14, 4))
         self.notes = ctk.CTkTextbox(
             form,
             height=120,
@@ -181,6 +192,7 @@ class FeedbackPage(ctk.CTkFrame):
         self.refresh_booking_ids()
 
     def on_submit(self) -> None:
+        """Validate and store the current feedback form."""
         booking_id = self.booking_entry.get().strip()
         if not booking_id:
             self.badge.configure(text="ERROR", fg_color=Theme.COLORS["bad"])
@@ -227,6 +239,7 @@ class FeedbackPage(ctk.CTkFrame):
         return load_image(path, target=140)
 
     def refresh_booking_ids(self) -> None:
+        """Refresh the recent-booking selector from the shared store."""
         ids = self.store.recent_booking_ids()
         menu_values = ids if ids else ["-"]
         self.recent_menu.configure(values=menu_values)
